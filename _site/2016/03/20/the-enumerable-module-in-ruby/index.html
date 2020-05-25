@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Enumerable Module in Ruby - tom winter</title>
+  <meta name="description" content="software engineer">
+  <link rel="stylesheet" href="http://localhost:4000/css/main.css">
+  <link rel="canonical" href="http://localhost:4000/2016/03/20/the-enumerable-module-in-ruby/">
+  <link rel="alternate" type="application/rss+xml" title="tom winter" href="http://localhost:4000/feed.xml">
+</head>
+
+  <body>
+    <div class="page-content">
+      <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <section class="site-header">
+		<p class="site-nav">
+  <a href="http://localhost:4000/">home</a> /
+  <a href="http://localhost:4000/weeknotes">weeknotes</a> /
+  <a href="http://localhost:4000/about">about</a> /
+  <a href="http://localhost:4000/elsewhere">elsewhere</a> /
+  <a href="http://localhost:4000/feed.xml">rss</a></p>
+
+	</section>
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">The Enumerable Module in Ruby</h1>
+    <p class="post-meta">
+      <time datetime="2016-03-20T00:00:00+00:00" itemprop="datePublished">Mar 20, 2016</time>
+      
+
+      
+  		
+
+  		
+  		
+
+  		&middot;	<span class="tags" itemprop="tags">
+  				<a href="http://localhost:4000/tagged#blog">#blog</a>
+  			</span>
+
+  	  
+
+    </p>
+  </header>
+  <div class="post-content" itemprop="articleBody">
+    <p>A brief look at Ruby’s Enumerable Module and methods</p>
+
+<blockquote>
+  <h1 id="a-set-is-a-many-that-allows-itself-to-be-thought-of-as-a-one--georg-cantor">“A set is a Many that allows itself to be thought of as a One” — <strong>Georg Cantor</strong></h1>
+</blockquote>
+
+<p>I’m hurtling towards the one year mark as a full time Rubyist. I still consider myself to be an utter novice but I hope to have at least picked up a few good habits along the way. One area where my understanding has evolved is in dealing with Ruby collections — traversing Hashes and Arrays and manipulating them in a way that is efficient and idiomatic.</p>
+
+<p>I intend to sketch out the behaviour of some of the more common methods found within Ruby’s ‘Enumerable’ module, in particular when you want to interrogate or manipulate a collection. In general I’m using ‘enumerable’ loosely in the context of Arrays and Hashes i.e. collections which can be counted/ordered in some way. This post is heavily indebted to all of the further reading identified at the end.</p>
+
+<h3 id="everything-was-each">Everything was each</h3>
+
+<p>When I first started working with Ruby I more or less only knew the fundamental ‘each’ method, and I manipulated and twisted it to achieve the desired outcome For instance, if I wanted to identify only the even numbers in an array:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">even_numbers</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">].</span><span class="nf">each</span> <span class="k">do</span> <span class="o">|</span><span class="n">num</span><span class="o">|</span>
+  <span class="n">even_numbers</span> <span class="o">&lt;&lt;</span> <span class="n">num</span> <span class="k">if</span> <span class="n">num</span><span class="p">.</span><span class="nf">even?</span>
+<span class="k">end</span>
+
+<span class="nb">puts</span> <span class="n">even_numbers</span>
+  <span class="o">=&gt;</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+</code></pre></div></div>
+
+<p>As far as I was concerned this worked fine. But I was conscious of regularly seeing other, far terser ways of achieving the same work in other people’s code.</p>
+
+<h3 id="the-enumerable-module">The Enumerable Module</h3>
+
+<p>One of the core Ruby modules is ‘<a href="http://ruby-doc.org/core-2.2.2/Enumerable.html">Enumerable</a>’. A mixin which provides a “<em>several traversal and searching methods, and with the ability to sort</em>”. This module is included within the core classes Array and Hash</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="no">Array</span><span class="p">.</span><span class="nf">included_modules?</span>
+  <span class="o">=&gt;</span> <span class="p">[</span><span class="no">Enumerable</span><span class="p">,</span> <span class="no">Kernel</span><span class="p">]</span>
+<span class="no">Hash</span><span class="p">.</span><span class="nf">included_modules?</span>
+  <span class="o">=&gt;</span> <span class="p">[</span><span class="no">Enumerable</span><span class="p">,</span> <span class="no">Kernel</span><span class="p">]</span>
+</code></pre></div></div>
+
+<p>I’m not going to look too closely at sorting in this post, but focus more on traversing enumerable classes and, perhaps, manipulating them in some way. I first saw the various methods I’d been stumbling across clearly laid out by <a href="http://www.sitepoint.com/guide-ruby-collections-iii-enumerable-enumerator/">Robert Qualls</a>:</p>
+
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Enumerable.instance_methods.sort
+
+  =&gt; [:all?, :any?, :chunk, :collect, :collect_concat, :count,  :cycle, :detect, :drop, :drop_while, :each_cons, :each_entry, :each_slice, :each_with_index, :each_with_object, :entries, :find, :find_all, :find_index, :first, :flat_map, :grep, :group_by, :include?, :inject, :lazy, :map, :max, :max_by, :member?, :min, :min_by, :minmax, :minmax_by, :none?, :one?, :partition, :reduce, :reject, :reverse_each, :select, :slice_after, :slice_before, :slice_when, :sort, :sort_by, :take, :take_while, :to_a, :to_h, :zip]
+</code></pre></div></div>
+
+<p>I’m going to briefly dwell on a small subset of these methods that I find myself using regularly: #any?, #collect and #select.</p>
+
+<h3 id="any">#any?</h3>
+
+<p>The first thing to note about this method is the concluding question mark, which conventionally indicates that it will return a boolean value (i.e. True or False). Such methods are also called ‘predicate’ methods. Generally any is used to ask whether any of the elements of the collection conform to the block that is passed in, for example:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">capitals</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'London'</span><span class="p">,</span> <span class="s1">'Edinburgh'</span><span class="p">,</span> <span class="s1">'Belfast'</span><span class="p">,</span> <span class="s1">'Cardiff'</span><span class="p">]</span>
+<span class="n">capitals</span><span class="p">.</span><span class="nf">any?</span> <span class="p">{</span> <span class="o">|</span><span class="nb">name</span><span class="o">|</span> <span class="nb">name</span><span class="p">.</span><span class="nf">length</span> <span class="o">&gt;=</span><span class="mi">5</span> <span class="p">}</span>
+  <span class="o">=&gt;</span> <span class="kp">true</span>
+</code></pre></div></div>
+
+<p>The fundamental behaviour of any? is to “<em>[return] true if the block ever returns a value other than false or nil</em>”. If no block is passed to the method then it simply iterates through the collection implictly asking ‘is there anything here that isn’t false or nil?’</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">foo</span> <span class="o">=</span> <span class="p">[</span><span class="kp">nil</span><span class="p">,</span> <span class="kp">false</span><span class="p">,</span> <span class="kp">true</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+<span class="n">bar</span> <span class="o">=</span> <span class="p">[</span><span class="kp">nil</span><span class="p">,</span> <span class="kp">false</span><span class="p">,</span> <span class="kp">nil</span><span class="p">,</span> <span class="kp">false</span><span class="p">]</span>
+<span class="n">foo</span><span class="p">.</span><span class="nf">any?</span> <span class="c1"># true</span>
+<span class="n">bar</span><span class="p">.</span><span class="nf">any?</span> <span class="c1"># false</span>
+</code></pre></div></div>
+
+<p>I now find myself using any? regularly, not to manipulate a collection but rather to question its contents.</p>
+
+<h3 id="collect">#collect</h3>
+
+<p>The absence of a question mark suggests that the above method does more than simply return a boolean value. In contrast to #each, #collect actually returns a whole new array, its elements are the product of running the passed block on every item in the original collection. So, for instance,</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">double_it</span><span class="p">(</span><span class="n">enum</span><span class="p">)</span>
+  <span class="n">enum</span><span class="p">.</span><span class="nf">collect</span> <span class="p">{</span> <span class="o">|</span><span class="n">x</span><span class="o">|</span> <span class="n">x</span> <span class="o">*</span> <span class="mi">2</span> <span class="p">}</span>
+<span class="k">end</span>
+
+<span class="n">double_it</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">10</span><span class="p">])</span>
+  <span class="o">=&gt;</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">20</span><span class="p">]</span> <span class="c1"># returns the manipulated array</span>
+</code></pre></div></div>
+
+<p>The collect method, in practical terms, <a href="http://stackoverflow.com/questions/5254732/difference-between-map-and-collect-in-ruby">is almost interchangable with the ‘map’ method</a>.</p>
+
+<h3 id="select">#select</h3>
+
+<p>This is the method I find myself using most regularly. In manipulating a collection I often want to identify a subset of it that conforms to a certain condition e.g. ‘<em>All of those in Year 9 who scored more than 75 in the exam</em>’.</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">year_nine</span> <span class="o">=</span> <span class="p">{</span><span class="no">Adams</span><span class="p">:</span> <span class="mi">34</span><span class="p">,</span> <span class="no">Butler</span><span class="p">:</span> <span class="mi">55</span><span class="p">,</span> <span class="no">Carr</span><span class="p">:</span> <span class="mi">93</span><span class="p">,</span> <span class="no">Davies</span><span class="p">:</span> <span class="mi">44</span><span class="p">,</span> <span class="no">Edwards</span><span class="p">:</span> <span class="mi">88</span><span class="p">}</span>
+
+<span class="n">year_nine</span><span class="p">.</span><span class="nf">select</span> <span class="p">{</span> <span class="o">|</span><span class="n">student</span><span class="p">,</span> <span class="n">score</span><span class="o">|</span> <span class="n">score</span> <span class="o">&gt;</span> <span class="mi">75</span> <span class="p">}</span>
+  <span class="o">=&gt;</span> <span class="p">{</span><span class="ss">:Carr</span><span class="o">=&gt;</span><span class="mi">93</span><span class="p">,</span> <span class="ss">:Edwards</span><span class="o">=&gt;</span><span class="mi">88</span><span class="p">}</span>
+</code></pre></div></div>
+
+<p>Select returns an entirely new object consisting of those elements from the original collection that met the conditions passed into the select’s block. In other words it’s used when you’re asking ‘<em>Can I have a subset of the original collection which fits a particular criteria’.</em></p>
+
+<p>The inverse of #select is #reject, which returns an array of all of the elements for which the block returned false. For instance:</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">homes</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'Jay Gatsby'</span> <span class="o">=&gt;</span> <span class="s1">'West Egg'</span><span class="p">,</span> <span class="s1">'José Buendía'</span> <span class="o">=&gt;</span> <span class="s1">'Macondo'</span><span class="p">,</span> <span class="s1">'Billy Pilgrim'</span> <span class="o">=&gt;</span> <span class="s1">'New York'</span><span class="p">}</span>
+
+<span class="n">homes</span><span class="p">.</span><span class="nf">reject</span> <span class="p">{</span> <span class="o">|</span><span class="nb">name</span><span class="p">,</span> <span class="n">town</span><span class="o">|</span> <span class="n">town</span><span class="p">.</span><span class="nf">length</span> <span class="o">&lt;</span> <span class="mi">8</span> <span class="p">}</span>
+  <span class="o">=&gt;</span> <span class="p">{</span><span class="s2">"Jay Gatsby"</span><span class="o">=&gt;</span><span class="s2">"West Egg"</span><span class="p">,</span> <span class="s2">"Billy Pilgrim"</span><span class="o">=&gt;</span><span class="s2">"New York"</span><span class="p">}</span>
+</code></pre></div></div>
+
+<p>In the above example we end up with a new Hash containing those elements for which the test ‘<em>Town name is less than 8 characters</em>’ returned false. i.e. all of those towns whose name is eight or more character in length.</p>
+
+<h3 id="easily-enumerable">Easily Enumerable</h3>
+
+<p>It is also possible to use the core Enumerable Module in your own classes (<a href="http://kconrails.com/2010/11/30/ruby-enumerable-primer-part-1-the-basics/">this was explained really excellently by Jaime Bellmyer</a>). Conceptually an object is enumerable if, broadly speaking, it can be ‘counted’ i.e. it has elements which are able to be iterated through. So if you’re defining a class which represents a collection then the logic of Enumerable could be useful.</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">Bookshelf</span>
+  <span class="kp">include</span> <span class="no">Enumerable</span>
+  <span class="nb">attr_accessor</span> <span class="ss">:books</span>
+
+  <span class="k">def</span> <span class="nf">initialize</span>
+    <span class="vi">@books</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">each</span><span class="p">(</span><span class="o">&amp;</span><span class="n">block</span><span class="p">)</span>
+    <span class="vi">@books</span><span class="p">.</span><span class="nf">each</span> <span class="p">{</span> <span class="o">|</span><span class="n">book</span><span class="o">|</span> <span class="n">block</span><span class="p">.</span><span class="nf">call</span><span class="p">(</span><span class="n">book</span><span class="p">)</span> <span class="p">}</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>There are a few deceptively complicated things going on above (e.g. ‘&amp; <em>the</em> <em>unary ampersand operator</em>’ and an attr_accessor) — but for the purpose of this post the key point is that you can include the Enumerator mixin, and the powerful logic it provides, in your own classes. The key requirement is that the class has its own #each method, because this core behaviour of being able to move through a set is key to the Enumerable module.</p>
+
+<h3 id="ampersand-shortcut">Ampersand shortcut</h3>
+
+<p>Just as a final addendum — the <em>unary ampersand operater</em> I mentioned above often appears when traversing collections</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">users</span><span class="p">.</span><span class="nf">map</span><span class="p">(</span><span class="o">&amp;</span><span class="ss">:name</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>There are some good explanations of what’s going on ‘under the hood’ <a href="http://stackoverflow.com/questions/1961030/ruby-ampersand-colon-shortcut">here</a> &amp; <a href="http://kconrails.com/2010/12/01/ruby-enumerable-primer-part-2-unary-ampersand-operator/">here</a> (some of which still eludes my understanding). But to quickly outline in purely practical terms: when you’re looking (for instance) to identify a single property from items in a collection, this allows you to quickly call for the attribute on every member of a set and return an array of those values. So the above code is equivalent to the slightly more verbose</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">users</span><span class="p">.</span><span class="nf">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">user</span><span class="o">|</span>
+  <span class="n">user</span><span class="p">.</span><span class="nf">name</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>Clearly we have only scratched the surface of Ruby’s Enumerable module. The message I hoped to capture in writing this post, as someone who’s still very new to Ruby, is that it’s always worth taking a step back and considering ‘<em>What am I trying to find out here</em>?’ — because this will often change the tools you need for the job.</p>
+
+<p>(Thanks very much to @chrislowis for his suggestions on improving this post).</p>
+
+<h2 id="further-reading">Further Reading</h2>
+
+<ul>
+  <li>
+    <p><a href="http://ruby.bastardsbook.com/chapters/enumerables/">‘<em>Enumerables</em>’ — The Bastard Book of Ruby</a></p>
+  </li>
+  <li>
+    <p><a href="http://www.eriktrautman.com/posts/ruby-explained-map-select-and-other-enumerable-methods">‘<em>Ruby Explained: Map, Select, and Other Enumerable Methods</em>’ — Erik Trautman</a></p>
+  </li>
+  <li>
+    <p><a href="http://www.sitepoint.com/guide-ruby-collections-iii-enumerable-enumerator/">‘<em>A Guide To Ruby Collections</em>’ — Robert Qualls</a></p>
+  </li>
+  <li>
+    <p><a href="http://mauricio.github.io/2015/01/12/implementing-enumerable-in-ruby.html">‘<em>Understanding Ruby Enumerables by Reimplementing Them</em>’ — Maurício Linhares</a></p>
+  </li>
+  <li>
+    <p><a href="http://kconrails.com/2010/11/30/ruby-enumerable-primer-part-1-the-basics/">‘<em>Ruby Enumerable Magic: The Basics</em>’ — Jaime Bellmyer</a></p>
+  </li>
+</ul>
+
+<h2 id="background-noise">Background noise</h2>
+
+<ul>
+  <li>
+    <p>Jamie xx — In Colour</p>
+  </li>
+  <li>
+    <p>Sun Kil Moon — Universal Themes</p>
+  </li>
+</ul>
+
+  </div>
+  <hr>
+  
+</article>
+
+      <div class="copyright">
+        <p>&copy; 2020 <a href="http://localhost:4000/"><strong>tom winter</strong></a> ― Powered by <a href="https://jekyllrb.com/">Jekyll</a> and <a href="https://github.com/heiswayi/textlog">Textlog theme</a></p>
+      </div>
+    </div>
+    
+  </body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Functional components in React - tom winter</title>
+  <meta name="description" content="software engineer">
+  <link rel="stylesheet" href="http://localhost:4000/css/main.css">
+  <link rel="canonical" href="http://localhost:4000/2017/06/11/functional-components-in-react/">
+  <link rel="alternate" type="application/rss+xml" title="tom winter" href="http://localhost:4000/feed.xml">
+</head>
+
+  <body>
+    <div class="page-content">
+      <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <section class="site-header">
+		<p class="site-nav">
+  <a href="http://localhost:4000/">home</a> /
+  <a href="http://localhost:4000/weeknotes">weeknotes</a> /
+  <a href="http://localhost:4000/about">about</a> /
+  <a href="http://localhost:4000/elsewhere">elsewhere</a> /
+  <a href="http://localhost:4000/feed.xml">rss</a></p>
+
+	</section>
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Functional components in React</h1>
+    <p class="post-meta">
+      <time datetime="2017-06-11T00:00:00+01:00" itemprop="datePublished">Jun 11, 2017</time>
+      
+
+      
+  		
+
+  		
+  		
+
+  		&middot;	<span class="tags" itemprop="tags">
+  				<a href="http://localhost:4000/tagged#blog">#blog</a>
+  			</span>
+
+  	  
+
+    </p>
+  </header>
+  <div class="post-content" itemprop="articleBody">
+    <p>Summary: The core building blocks of React are components. These components may possess enough complexity to require state and lifecycle methods. However some are simple enough that they can be written as pure Javascript functions. This post demonstrates how a component can be rewritten as a Javascript function rather than an ES6 Class</p>
+
+<blockquote>
+  <p>Conceptually, components are like JavaScript functions. They accept arbitrary inputs (called “props”) and return React elements describing what should appear on the screen…(t)he simplest way to define a component is to write a JavaScript function (<a href="https://facebook.github.io/react/docs/components-and-props.html">*React Docs</a>)*</p>
+</blockquote>
+
+<p>In much the same way that it’s sometimes easy to over-reach for a Store implementation like <a href="http://redux.js.org/docs/introduction/">Redux</a> when internal state would suffice, it can be easy to introduce unnecessary overhead by reaching for a fully fledged ES6 Class when a functional, stateless implementation would do.</p>
+
+<p>Take the example below. A simple, presentational component which renders a title, subtitle and some further content. For our purposes it’s been called a Section.</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nx">React</span> <span class="k">from</span> <span class="s1">'react'</span><span class="p">;</span>
+<span class="k">import</span> <span class="nx">classNames</span> <span class="k">from</span> <span class="s1">'classnames'</span><span class="p">;</span>
+
+<span class="kd">class</span> <span class="nx">Section</span> <span class="kd">extends</span> <span class="nx">React</span><span class="p">.</span><span class="nx">Component</span> <span class="p">{</span>
+  <span class="kr">static</span> <span class="nx">propTypes</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="na">title</span><span class="p">:</span> <span class="nx">React</span><span class="p">.</span><span class="nx">PropTypes</span><span class="p">.</span><span class="nx">string</span><span class="p">.</span><span class="nx">isRequired</span><span class="p">,</span>
+    <span class="na">subtitle</span><span class="p">:</span> <span class="nx">React</span><span class="p">.</span><span class="nx">PropTypes</span><span class="p">.</span><span class="nx">string</span><span class="p">,</span>
+    <span class="na">children</span><span class="p">:</span> <span class="nx">PropTypes</span><span class="p">.</span><span class="nx">node</span>
+  <span class="p">}</span>
+
+<span class="nx">title</span> <span class="o">=</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="p">(</span>
+    <span class="o">&lt;</span><span class="nx">h2</span> <span class="nx">className</span><span class="o">=</span><span class="s1">'section__title'</span><span class="o">&gt;</span><span class="p">{</span> <span class="nx">props</span><span class="p">.</span><span class="nx">title</span> <span class="p">}</span><span class="o">&lt;</span><span class="sr">/h2</span><span class="err">&gt;
+</span>  <span class="p">);</span>
+<span class="p">}</span>
+
+<span class="nx">subtitle</span> <span class="o">=</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="k">this</span><span class="p">.</span><span class="nx">props</span><span class="p">.</span><span class="nx">subtitle</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="kc">null</span><span class="p">;</span> <span class="p">}</span>
+
+  <span class="k">return</span> <span class="p">(</span>
+    <span class="o">&lt;</span><span class="nx">p</span> <span class="nx">className</span><span class="o">=</span><span class="s1">'section__subtitle'</span><span class="o">&gt;</span><span class="p">{</span> <span class="nx">props</span><span class="p">.</span><span class="nx">subtitle</span> <span class="p">}</span><span class="o">&lt;</span><span class="sr">/p</span><span class="err">&gt;
+</span>  <span class="p">);</span>
+<span class="p">}</span>
+
+<span class="nx">render</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="p">(</span>
+    <span class="o">&lt;</span><span class="nx">div</span> <span class="nx">className</span><span class="o">=</span><span class="p">{</span> <span class="nx">classNames</span><span class="p">(</span><span class="nx">props</span><span class="p">.</span><span class="nx">className</span><span class="p">,</span> <span class="s1">'section'</span><span class="p">)</span> <span class="p">}</span><span class="o">&gt;</span>
+      <span class="p">{</span> <span class="k">this</span><span class="p">.</span><span class="nx">title</span><span class="p">()</span> <span class="p">}</span>
+      <span class="p">{</span> <span class="k">this</span><span class="p">.</span><span class="nx">subtitle</span><span class="p">()</span> <span class="p">}</span>
+      <span class="p">{</span> <span class="nx">props</span><span class="p">.</span><span class="nx">children</span> <span class="p">}</span>
+    <span class="o">&lt;</span><span class="sr">/div</span><span class="err">&gt;
+</span>  <span class="p">);</span>
+<span class="p">}</span>
+
+<span class="k">export</span> <span class="k">default</span> <span class="nx">Section</span><span class="p">;</span>
+</code></pre></div></div>
+
+<p>There’s nothing about the above component which hinges on any implementation of state or utilises lifecycle methods to respond to change. It’s therefore a perfect candidate for being written as a straightforward Javascript function. The first thing to define is the component.</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nx">React</span> <span class="k">from</span> <span class="s1">'react'</span>
+<span class="k">import</span> <span class="nx">classNames</span> <span class="k">from</span> <span class="s1">'classnames'</span>
+
+<span class="kd">let</span> <span class="nx">Section</span> <span class="o">=</span> <span class="nx">props</span> <span class="o">=&gt;</span> <span class="p">(</span>
+  <span class="o">&lt;</span><span class="nx">div</span> <span class="nx">className</span><span class="o">=</span><span class="p">{</span><span class="nx">classNames</span><span class="p">(</span><span class="nx">props</span><span class="p">.</span><span class="nx">className</span><span class="p">,</span> <span class="s1">'section'</span><span class="p">)}</span><span class="o">&gt;</span><span class="p">...</span><span class="o">&lt;</span><span class="sr">/div</span><span class="err">&gt;
+</span><span class="p">)</span>
+<span class="k">export</span> <span class="k">default</span> <span class="nx">Section</span>
+</code></pre></div></div>
+
+<p>The render method has effectively been replaced by using the <a href="https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Functions/Arrow_functions">ES6 Arrow Function’s implicit return</a>. This Section component is now a pure Javascript function. Likewise the functions that return a title and subtitle can be rewritten</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kd">const</span> <span class="nx">title</span> <span class="o">=</span> <span class="nx">props</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="o">&lt;</span><span class="nx">h2</span> <span class="nx">className</span><span class="o">=</span><span class="s2">"section__title"</span><span class="o">&gt;</span><span class="p">{</span><span class="nx">props</span><span class="p">.</span><span class="nx">title</span><span class="p">}</span><span class="o">&lt;</span><span class="sr">/h2</span><span class="err">&gt;
+</span><span class="p">}</span>
+
+<span class="kd">const</span> <span class="nx">subtitle</span> <span class="o">=</span> <span class="nx">props</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">props</span><span class="p">.</span><span class="nx">subtitle</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="kc">null</span>
+  <span class="p">}</span>
+
+  <span class="k">return</span> <span class="o">&lt;</span><span class="nx">p</span> <span class="nx">className</span><span class="o">=</span><span class="s2">"section__title"</span><span class="o">&gt;</span><span class="p">{</span><span class="nx">props</span><span class="p">.</span><span class="nx">subtitle</span><span class="p">}</span><span class="o">&lt;</span><span class="sr">/p</span><span class="err">&gt;
+</span><span class="p">}</span>
+</code></pre></div></div>
+
+<p>Note that the relevant props object needs to be passed into these additional functions rather than being with the scope of the class and available by calling this.props.</p>
+
+<p>In addition the Section has its propTypes defined — both .propTypes and .defaultProps can be set as properties in a functional component.</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nx">Section</span><span class="p">.</span><span class="nx">propTypes</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="na">title</span><span class="p">:</span> <span class="nx">React</span><span class="p">.</span><span class="nx">PropTypes</span><span class="p">.</span><span class="nx">string</span><span class="p">.</span><span class="nx">isRequired</span><span class="p">,</span>
+  <span class="na">subtitle</span><span class="p">:</span> <span class="nx">React</span><span class="p">.</span><span class="nx">PropTypes</span><span class="p">.</span><span class="nx">string</span><span class="p">,</span>
+  <span class="na">children</span><span class="p">:</span> <span class="nx">React</span><span class="p">.</span><span class="nx">PropTypes</span><span class="p">.</span><span class="nx">node</span><span class="p">,</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>The entire rewritten code is then a stateless Javascript component</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nx">React</span> <span class="k">from</span> <span class="s1">'react'</span>
+<span class="k">import</span> <span class="nx">classNames</span> <span class="k">from</span> <span class="s1">'classnames'</span>
+
+<span class="kd">const</span> <span class="nx">title</span> <span class="o">=</span> <span class="nx">props</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="o">&lt;</span><span class="nx">h2</span> <span class="nx">className</span><span class="o">=</span><span class="s2">"section__title"</span><span class="o">&gt;</span><span class="p">{</span><span class="nx">props</span><span class="p">.</span><span class="nx">title</span><span class="p">}</span><span class="o">&lt;</span><span class="sr">/h2</span><span class="err">&gt;
+</span><span class="p">}</span>
+
+<span class="kd">const</span> <span class="nx">subtitle</span> <span class="o">=</span> <span class="nx">props</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">props</span><span class="p">.</span><span class="nx">subtitle</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="kc">null</span>
+  <span class="p">}</span>
+
+  <span class="k">return</span> <span class="o">&lt;</span><span class="nx">p</span> <span class="nx">className</span><span class="o">=</span><span class="s2">"section__title"</span><span class="o">&gt;</span><span class="p">{</span><span class="nx">props</span><span class="p">.</span><span class="nx">subtitle</span><span class="p">}</span><span class="o">&lt;</span><span class="sr">/p</span><span class="err">&gt;
+</span><span class="p">}</span>
+
+<span class="kd">let</span> <span class="nx">Section</span> <span class="o">=</span> <span class="nx">props</span> <span class="o">=&gt;</span> <span class="p">(</span>
+  <span class="o">&lt;</span><span class="nx">div</span> <span class="nx">className</span><span class="o">=</span><span class="p">{</span><span class="nx">classNames</span><span class="p">(</span><span class="nx">props</span><span class="p">.</span><span class="nx">className</span><span class="p">,</span> <span class="s1">'section'</span><span class="p">)}</span><span class="o">&gt;</span>
+    <span class="p">{</span><span class="nx">title</span><span class="p">(</span><span class="nx">props</span><span class="p">)}</span>
+    <span class="p">{</span><span class="nx">subtitle</span><span class="p">(</span><span class="nx">props</span><span class="p">)}</span>
+    <span class="p">{</span><span class="nx">props</span><span class="p">.</span><span class="nx">children</span><span class="p">}</span>
+  <span class="o">&lt;</span><span class="sr">/div</span><span class="err">&gt;
+</span><span class="p">)</span>
+<span class="nx">Section</span><span class="p">.</span><span class="nx">propTypes</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="na">title</span><span class="p">:</span> <span class="nx">React</span><span class="p">.</span><span class="nx">PropTypes</span><span class="p">.</span><span class="nx">string</span><span class="p">.</span><span class="nx">isRequired</span><span class="p">,</span>
+  <span class="na">subtitle</span><span class="p">:</span> <span class="nx">React</span><span class="p">.</span><span class="nx">PropTypes</span><span class="p">.</span><span class="nx">string</span><span class="p">,</span>
+  <span class="na">children</span><span class="p">:</span> <span class="nx">React</span><span class="p">.</span><span class="nx">PropTypes</span><span class="p">.</span><span class="nx">node</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="k">export</span> <span class="k">default</span> <span class="nx">Section</span>
+</code></pre></div></div>
+
+<p>The above represents a considerably less cluttered, pure Javascript implementation of the Section component.<a href="http://javascriptplayground.com/blog/2017/03/functional-stateless-components-react/"> I agree with Jack Franklin’s suggestion</a> that one of the main benefits of a functional stateless component ‘acts as a visual signal’</p>
+
+<blockquote>
+  <p>“this component is solely props in, rendered UI out”. If I see a class component, I do have to scan through to see what lifecycle methods it may be using, and what callbacks it may have. If I see an FSC, I know it isn’t doing anything fancy.</p>
+</blockquote>
+
+<p>Another benefit of this approach is that it allows straightforward unit testing — there aren’t any callbacks or user interaction to simulate. The test is that if certain props are passed in, the expected content is rendered.</p>
+
+<p>The React team are committed to this methodology. In the <a href="https://facebook.github.io/react/blog/2015/10/07/react-v0.14.html#stateless-functional-components">release notes</a> for v0.14 they argued that <em>“In idiomatic React code, most of the components you write will be stateless, simply composing other components”</em>. Additionally that, over time, this approach will become more performant as <em>“we’ll also be able to make performance optimizations specific to these components by avoiding unnecessary checks and memory allocations.”</em></p>
+
+<p>Since becoming familiar with this pattern for writing components I’ve endeavoured to implement it wherever possible. Much like the distinction between Presentational &amp; Functional components this pattern also drives your design thinking. As you become more mindful of constructing your code to be as <a href="https://facebook.github.io/react/docs/thinking-in-react.html">simple and reusable as possible</a>.</p>
+
+<h2 id="further-reading">Further Reading</h2>
+
+<ul>
+  <li>
+    <p><a href="https://medium.com/@dan_abramov/smart-and-dumb-components-7ca2f9a7c7d0">Presentational and Container Components</a> — Dan Abramov</p>
+  </li>
+  <li>
+    <p><a href="https://facebook.github.io/react/docs/components-and-props.html#functional-and-class-components">Functional and Class Components</a> — React Documentation</p>
+  </li>
+  <li>
+    <p><a href="https://hackernoon.com/react-stateless-functional-components-nine-wins-you-might-have-overlooked-997b0d933dbc">React Functional Stateless Components</a>—Cory House</p>
+  </li>
+  <li>
+    <p><a href="http://javascriptplayground.com/blog/2017/03/functional-stateless-components-react/">Functional Stateless Components</a> — Jack Franklin</p>
+  </li>
+</ul>
+
+<h2 id="background-noise">Background noise</h2>
+
+<ul>
+  <li>
+    <p>Kelly Lee Owens — Kelly Lee Owens</p>
+  </li>
+  <li>
+    <p>Aldous Harding — Party</p>
+  </li>
+  <li>
+    <p>Alison Crutchfield — Tourist In This Town</p>
+  </li>
+</ul>
+
+  </div>
+  <hr>
+  
+</article>
+
+      <div class="copyright">
+        <p>&copy; 2020 <a href="http://localhost:4000/"><strong>tom winter</strong></a> ― Powered by <a href="https://jekyllrb.com/">Jekyll</a> and <a href="https://github.com/heiswayi/textlog">Textlog theme</a></p>
+      </div>
+    </div>
+    
+  </body>
+</html>

@@ -4,16 +4,15 @@ layout: default
 <div class="home">
 	<section class="site-header">
 		{% include nav.html %}
-		{% include intro.html %}
 	</section>
 	<section>
 		<ul class="post-list">
 			{% for post in site.posts %}
-				{% unless post.tags contains 'weeknote' %}
+				{% if post.tags contains 'weeknote' %}
 					<li>
 						<a href="{{ post.url | prepend: site.baseurl | prepend: site.url }}">{{ post.title }}</a> <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%b %d, %Y" }}</time>
 					</li>
-				{% endunless %}
+				{% endif %}
 			{% endfor %}
 		</ul>
 	</section>

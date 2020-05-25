@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Using the VCR gem to mock external requests in Rails - tom winter</title>
+  <meta name="description" content="software engineer">
+  <link rel="stylesheet" href="http://localhost:4000/css/main.css">
+  <link rel="canonical" href="http://localhost:4000/2017/01/17/using-the-vcr-gem-to-mock-external-requests-in-rails/">
+  <link rel="alternate" type="application/rss+xml" title="tom winter" href="http://localhost:4000/feed.xml">
+</head>
+
+  <body>
+    <div class="page-content">
+      <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <section class="site-header">
+		<p class="site-nav">
+  <a href="http://localhost:4000/">home</a> /
+  <a href="http://localhost:4000/weeknotes">weeknotes</a> /
+  <a href="http://localhost:4000/about">about</a> /
+  <a href="http://localhost:4000/elsewhere">elsewhere</a> /
+  <a href="http://localhost:4000/feed.xml">rss</a></p>
+
+	</section>
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Using the VCR gem to mock external requests in Rails</h1>
+    <p class="post-meta">
+      <time datetime="2017-01-17T00:00:00+00:00" itemprop="datePublished">Jan 17, 2017</time>
+      
+
+      
+  		
+
+  		
+  		
+
+  		&middot;	<span class="tags" itemprop="tags">
+  				<a href="http://localhost:4000/tagged#blog">#blog</a>
+  			</span>
+
+  	  
+
+    </p>
+  </header>
+  <div class="post-content" itemprop="articleBody">
+    <p>The problem</p>
+
+<p>It is common for a Rails application to make HTTP requests — for instance to an external API. It is important that your test suite accounts for this request, the way it is made and how the response is handled. However, for a variety of reasons (speed, rate limits, security), it is often desirable that your tests don’t really go and make this HTTP request every time.</p>
+
+<p>There are a number of approaches to this, most of which have an intrinsic level of artifice (i.e. you’re somehow mocking or faking the request). The approach I’m going to outline below uses the <a href="https://github.com/vcr/vcr">VCR gem</a>. I haven’t dwelled on some of the initial setup for VCR, which is covered in their <a href="https://github.com/vcr/vcr">repo</a>.</p>
+
+<p>The VCR gem allows you to make a real, properly structured request. Both this and the ensuing response are then ‘recorded’ and stored in your test ecosystem. From that point on your tests shouldn’t make a real HTTP request, however the structure will be akin to as if it had done so. The fragility here (somewhat mitigated by VCR’s re-recording facility) is that the external service may change. Whilst remaining mindful of this disconnect, it’s still a very reasonable sacrifice compared to making real HTTP requests.</p>
+
+<h2 id="testing-the-request">Testing the Request</h2>
+
+<p>Below is a simpleExternalServiceFetcher class. It takes a number as an argument, builds a URL to the external service and then makes a HTTP request.</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">ExternalServiceFetcher</span>
+  <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">request_id</span><span class="p">)</span>
+    <span class="vi">@request_id</span> <span class="o">=</span> <span class="n">request_id</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">make_request</span>
+    <span class="k">begin</span>
+      <span class="no">HTTParty</span><span class="p">.</span><span class="nf">get</span><span class="p">(</span><span class="n">build_url</span><span class="p">)</span>
+    <span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+      <span class="no">Rails</span><span class="p">.</span><span class="nf">logger</span><span class="p">.</span><span class="nf">error</span> <span class="p">{</span> <span class="s2">"Encountered an error when making request {url}. </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2"> </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">backtrace</span><span class="p">.</span><span class="nf">join</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span> <span class="p">}</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">build_url</span>
+    <span class="no">ENV</span><span class="p">[</span><span class="s1">'EXTERNAL_REQUEST_ENDPOINT'</span><span class="p">]</span> <span class="o">+</span> <span class="s2">"/</span><span class="si">#{</span><span class="vi">@request_id</span><span class="si">}</span><span class="s2">"</span> <span class="o">+</span> <span class="s1">'?client_id='</span> <span class="o">+</span> <span class="no">ENV</span><span class="p">[</span><span class="s1">'CLIENT_ID'</span><span class="p">]</span> <span class="o">+</span> <span class="s1">'&amp;client_secret='</span> <span class="o">+</span> <span class="no">ENV</span><span class="p">[</span><span class="s1">'CLIENT_SECRET'</span><span class="p">]</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>Our class does not have any responsibility for the content of the response. The only thing this class needs to do is to form the request correctly. Because in this case it’s building an endpoint from different variables &amp; parameters there might be some merit in checking that the request is structured as expected.</p>
+
+<p>One immediate thing to note is that this external request uses sensitive information. The request needs to be made successfully but you also don’t want to commit these values to source control. There are different ways to approach this problem and one is to use VCR’s in-built configuration that matches sensitive information and substitutes it for a benign replacement.</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="no">VCR</span><span class="p">.</span><span class="nf">configure</span> <span class="k">do</span> <span class="o">|</span><span class="n">c</span><span class="o">|</span>
+    <span class="o">...</span>
+    <span class="n">c</span><span class="p">.</span><span class="nf">filter_sensitive_data</span><span class="p">(</span><span class="s1">'my-client-id'</span><span class="p">)</span> <span class="p">{</span> <span class="no">ENV</span><span class="p">[</span><span class="s1">'CLIENT_ID'</span><span class="p">]</span> <span class="p">}</span>
+    <span class="n">c</span><span class="p">.</span><span class="nf">filter_sensitive_data</span><span class="p">(</span><span class="s1">'my-client-secret'</span><span class="p">)</span> <span class="p">{</span> <span class="no">ENV</span><span class="p">[</span><span class="s1">'CLIENT_SECRET'</span><span class="p">]</span> <span class="p">}</span>
+    <span class="n">c</span><span class="p">.</span><span class="nf">filter_sensitive_data</span><span class="p">(</span><span class="s1">'https://some.api.endpoint'</span><span class="p">)</span> <span class="p">{</span> <span class="no">ENV</span><span class="p">[</span><span class="s1">'EXTERNAL_REQUEST_ENDPOINT'</span><span class="p">]</span> <span class="p">}</span>
+  <span class="k">end</span>
+</code></pre></div></div>
+
+<p>What this ensures, is that although when the cassette is record it will use the real environment variables that it depends on to authenticate, it won’t commit those to the cassette.</p>
+
+<h2 id="making-the-request">Making the Request</h2>
+
+<p>The next step is to record the cassette. Assuming the necessary configuration is in place, you can wrap the test which will be making an external call with the VCR block and a descriptive string. Then it’s a case of setting the test’s expectation as normal (in this case, that a request is made with a URL of a certain structure). In order to make and record the HTTP request we want to .and_call_original at the end of the expectation.</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="no">RSpec</span><span class="p">.</span><span class="nf">describe</span> <span class="no">ExternalServiceFetcher</span> <span class="k">do</span>
+  <span class="n">subject</span> <span class="p">{</span> <span class="no">ExternalServiceFetcher</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">}</span>
+
+  <span class="n">it</span> <span class="s1">'builds the correct API request'</span> <span class="k">do</span>
+    <span class="no">VCR</span><span class="p">.</span><span class="nf">use_cassette</span><span class="p">(</span><span class="s1">'my_external_service_request'</span><span class="p">)</span> <span class="k">do</span>
+      <span class="n">expect</span><span class="p">(</span><span class="no">HTTParty</span><span class="p">).</span><span class="nf">to</span> <span class="n">receive</span><span class="p">(</span><span class="ss">:get</span><span class="p">).</span><span class="nf">with</span><span class="p">(</span><span class="s1">'https://some.api.endpoint/1?client_id=my-client-id&amp;client_secret=my-client-secret'</span><span class="p">).</span><span class="nf">and_call_original</span>
+      <span class="n">subject</span><span class="p">.</span><span class="nf">make_request</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span>
+</code></pre></div></div>
+
+<p>The first time you run this test, assuming all went well, a new file will appear located atspec/cassettes/my_external_service_request.yml. This file contains lots of interesting detail — the full response, headers and so on. Assuming the url that you passed to the HTTP request was formed correctly, then the test should pass.</p>
+
+<h2 id="testing-the-response">Testing the response</h2>
+
+<p>In most cases, once your class has made an HTTP request, it is then likely to want do something with the response. Sometimes the ExternalServiceFetcher might undertake some further work with the response, but for now let’s assume you just want to leave a test in place that confirms the structure of the response.</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">ExternalServiceFetcher</span>
+  <span class="o">...</span>
+  <span class="k">def</span> <span class="nf">make_request</span>
+    <span class="k">begin</span>
+      <span class="n">api_response</span> <span class="o">=</span> <span class="no">HTTParty</span><span class="p">.</span><span class="nf">get</span><span class="p">(</span><span class="n">build_url</span><span class="p">)</span>
+    <span class="k">rescue</span> <span class="o">=&gt;</span> <span class="n">e</span>
+      <span class="no">Rails</span><span class="p">.</span><span class="nf">logger</span><span class="p">.</span><span class="nf">error</span> <span class="p">{</span> <span class="s2">"Encountered an error when making request {url}. </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">message</span><span class="si">}</span><span class="s2"> </span><span class="si">#{</span><span class="n">e</span><span class="p">.</span><span class="nf">backtrace</span><span class="p">.</span><span class="nf">join</span><span class="p">(</span><span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span> <span class="p">}</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+  <span class="o">...</span><span class="p">.</span>
+<span class="nf">end</span>
+</code></pre></div></div>
+
+<p>Because this test is wrapped in a VCR instruction pointing a recorded cassette the ExternalFetcherService class can go ahead any make the HTTParty.get request that it’s expecting to do so. VCR now steps in and prevents an external call being made.</p>
+
+<p>We can now test that the response from the HTTP request is of the structure that we expect</p>
+
+<div class="language-ruby highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="no">RSpec</span><span class="p">.</span><span class="nf">describe</span> <span class="no">ExternalServiceFetcher</span> <span class="k">do</span>
+    <span class="n">subject</span> <span class="p">{</span> <span class="no">ExternalServiceFetcher</span><span class="p">.</span><span class="nf">new</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">}</span>
+    <span class="n">let</span><span class="p">(</span><span class="ss">:api_response</span><span class="p">)</span> <span class="p">{</span>
+      <span class="ss">a_property: </span><span class="s1">'a value'</span><span class="p">,</span>
+      <span class="ss">another_property: </span><span class="s1">'another_value'</span>
+    <span class="p">}</span>
+    <span class="o">...</span>
+
+    <span class="n">it</span> <span class="s1">'passes the API response to the parser class'</span> <span class="k">do</span>
+      <span class="no">VCR</span><span class="p">.</span><span class="nf">use_cassette</span><span class="p">(</span><span class="s1">'my_external_service_request'</span><span class="p">)</span> <span class="k">do</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">subject</span><span class="p">.</span><span class="nf">make_request</span>
+        <span class="n">expect</span><span class="p">(</span><span class="no">JSON</span><span class="p">.</span><span class="nf">parse</span><span class="p">(</span><span class="n">response</span><span class="p">.</span><span class="nf">body</span><span class="p">)).</span><span class="nf">to</span> <span class="n">eq</span><span class="p">(</span><span class="n">api_response</span><span class="p">)</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+</code></pre></div></div>
+
+<h2 id="conclusion">Conclusion</h2>
+
+<p>There are a wide variety of approaches to testing HTTP requests in a Rails application. In some cases the above may be too much work, in same cases it may be insufficient. I’m generally comfortable with the approach above because</p>
+
+<ol>
+  <li>
+    <p>You’ve made a full ‘end to end’ request one time. You therefore know things work as expected…at least once.</p>
+  </li>
+  <li>
+    <p>The recorded response will create a test object that’s indistinguishable from the real response (providing the service is static). Giving you more confidence in the behaviour that depends on that response</p>
+  </li>
+  <li>
+    <p>From that point on your tests are fast and readable, there’s as little mocking or stubbing going on as you can get away with.</p>
+  </li>
+</ol>
+
+  </div>
+  <hr>
+  
+</article>
+
+      <div class="copyright">
+        <p>&copy; 2020 <a href="http://localhost:4000/"><strong>tom winter</strong></a> ― Powered by <a href="https://jekyllrb.com/">Jekyll</a> and <a href="https://github.com/heiswayi/textlog">Textlog theme</a></p>
+      </div>
+    </div>
+    
+  </body>
+</html>
