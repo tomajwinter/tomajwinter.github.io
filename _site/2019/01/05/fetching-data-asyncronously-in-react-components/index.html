@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fetching data asynchronously in React Components - tom winter</title>
+  <meta name="description" content="software engineer">
+  <link rel="stylesheet" href="http://localhost:4000/css/main.css">
+  <link rel="canonical" href="http://localhost:4000/2019/01/05/fetching-data-asyncronously-in-react-components/">
+  <link rel="alternate" type="application/rss+xml" title="tom winter" href="http://localhost:4000/feed.xml">
+</head>
+
+  <body>
+    <div class="page-content">
+      <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <section class="site-header">
+		<p class="site-nav">
+  <a href="http://localhost:4000/">home</a> /
+  <a href="http://localhost:4000/weeknotes">weeknotes</a> /
+  <a href="http://localhost:4000/about">about</a> /
+  <a href="http://localhost:4000/elsewhere">elsewhere</a> /
+  <a href="http://localhost:4000/feed.xml">rss</a></p>
+
+	</section>
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Fetching data asynchronously in React Components</h1>
+    <p class="post-meta">
+      <time datetime="2019-01-05T00:00:00+00:00" itemprop="datePublished">Jan 05, 2019</time>
+      
+
+      
+  		
+
+  		
+  		
+
+  		&middot;	<span class="tags" itemprop="tags">
+  				<a href="http://localhost:4000/tagged#blog">#blog</a>
+  			</span>
+
+  	  
+
+    </p>
+  </header>
+  <div class="post-content" itemprop="articleBody">
+    <p>This post lays out one approach to building (and testing) React components that make a request to an external data source on componentDidMount. It touches on two approaches — Promises (ES6) and async/await (ES2017).</p>
+
+<h2 id="1-the-challenge">1. The Challenge</h2>
+
+<p>It is common for React components to be responsible for fetching data from external data sources. One pattern is to use the componentDidMount lifecycle method to undertake any data fetching and setup. In order for this to be robust the UI should account for latency in the request as well as the possibility of the expected data not successfully being returned.</p>
+
+<h2 id="2-some-setup">2. Some setup</h2>
+
+<p>In order to not couple our Components too closely with any library, and to make testing more flexible, we will implement aHTTPWrapper class. (The actual library being used to make HTTP requests is <a href="https://github.com/axios/axios">axios</a>). Abstracting it into a wrapper allows for more flexible testing as well as the possibility that you might want to replace your external dependency at some stage.</p>
+
+<p>The below example lays out the wrapper’s implementation of a get request. Just a couple of things to note about the function:</p>
+
+<ul>
+  <li>
+    <p>It uses object destructuring to allow optional arguments (e.g in some cases we might want to include Authentication headers in config, but not in every case)</p>
+  </li>
+  <li>
+    <p>It returns a promise (wrapping the same approach as axios)</p>
+  </li>
+</ul>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="k">import</span> <span class="nx">axios</span> <span class="k">from</span> <span class="s1">'axios'</span><span class="p">;</span>
+
+  <span class="kd">class</span> <span class="nx">HTTPWrapper</span> <span class="p">{</span>
+    <span class="kd">get</span> <span class="o">=</span> <span class="p">({</span> <span class="nx">url</span><span class="p">,</span> <span class="nx">config</span> <span class="p">}</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">=&gt;</span> <span class="k">new</span> <span class="nb">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">,</span> <span class="nx">reject</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+      <span class="nx">axios</span>
+        <span class="p">.</span><span class="kd">get</span><span class="p">(</span><span class="nx">url</span><span class="p">,</span> <span class="nx">config</span><span class="p">)</span>
+        <span class="p">.</span><span class="nx">then</span><span class="p">((</span><span class="nx">response</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+          <span class="nx">resolve</span><span class="p">(</span><span class="nx">response</span><span class="p">);</span>
+        <span class="p">})</span>
+        <span class="p">.</span><span class="k">catch</span><span class="p">((</span><span class="nx">errors</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+          <span class="nx">reject</span><span class="p">(</span><span class="nx">errors</span><span class="p">);</span>
+        <span class="p">});</span>
+  <span class="p">});</span>
+
+  <span class="k">export</span> <span class="k">default</span> <span class="k">new</span> <span class="nx">HTTPWrapper</span><span class="p">();</span>
+</code></pre></div></div>
+
+<p>We will also build a class that handles API calls by making use of this HTTPWrapper . From our component’s perspective, it only need know that it is calling a function, with an ID, that will return some data. This intermediate UserAPI class sits between our component and HTTPWrapper and could look something like:</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nx">HTTPWrapper</span> <span class="k">from</span> <span class="s1">'../utils/HTTPWrapper'</span>
+
+<span class="kd">class</span> <span class="nx">UserAPI</span> <span class="p">{</span>
+  <span class="nx">getDataForUser</span> <span class="o">=</span> <span class="nx">id</span> <span class="o">=&gt;</span>
+    <span class="nx">HTTPWrapper</span><span class="p">.</span><span class="kd">get</span><span class="p">({</span>
+      <span class="na">url</span><span class="p">:</span> <span class="s2">`my/external/service/v1/users/</span><span class="p">${</span><span class="nx">id</span><span class="p">}</span><span class="s2">`</span><span class="p">,</span>
+    <span class="p">})</span>
+<span class="p">}</span>
+
+<span class="k">export</span> <span class="k">default</span> <span class="k">new</span> <span class="nx">UserAPI</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>These two extra classes can feel like additional boilerplate — but as well as keeping code concise and with single, smaller responsibilities it also will make it easier to test interactions across (and beyond) our app.</p>
+
+<h2 id="3-our-userdetails-component">3. Our UserDetails component</h2>
+
+<p>UserDetails is designed to fetch data about a user and return a greeting message. We want to ensure that during the time a request is being undertaken it displays something meaningful. Then, once it has data available, it updates the UI.</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nx">React</span><span class="p">,</span> <span class="p">{</span> <span class="nx">Component</span> <span class="p">}</span> <span class="k">from</span> <span class="s1">'react'</span>
+<span class="k">import</span> <span class="nx">PropTypes</span> <span class="k">from</span> <span class="s1">'prop-types'</span>
+<span class="k">import</span> <span class="nx">UserAPI</span> <span class="k">from</span> <span class="s1">'../../api/UserAPI'</span>
+
+<span class="kd">class</span> <span class="nx">UserDetails</span> <span class="kd">extends</span> <span class="nx">Component</span> <span class="p">{</span>
+  <span class="kr">static</span> <span class="nx">propTypes</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="na">userId</span><span class="p">:</span> <span class="nx">PropTypes</span><span class="p">.</span><span class="nx">string</span><span class="p">.</span><span class="nx">isRequired</span><span class="p">,</span>
+  <span class="p">}</span>
+
+  <span class="kd">constructor</span><span class="p">(</span><span class="nx">props</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">super</span><span class="p">(</span><span class="nx">props</span><span class="p">)</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">state</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="na">user</span><span class="p">:</span> <span class="kc">null</span><span class="p">,</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="nx">componentDidMount</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// get some data</span>
+  <span class="p">}</span>
+
+  <span class="nx">displayUser</span> <span class="o">=</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="kd">const</span> <span class="p">{</span> <span class="nx">user</span> <span class="p">}</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">state</span>
+    <span class="kd">const</span> <span class="p">{</span> <span class="nx">name</span> <span class="p">}</span> <span class="o">=</span> <span class="nx">user</span>
+    <span class="k">return</span> <span class="o">&lt;</span><span class="nx">span</span><span class="o">&gt;</span><span class="p">{</span><span class="s2">`Hello </span><span class="p">${</span><span class="nx">name</span><span class="p">}</span><span class="s2">!`</span><span class="p">}</span><span class="o">&lt;</span><span class="sr">/span</span><span class="err">&gt;
+</span>  <span class="p">}</span>
+
+  <span class="nx">loading</span> <span class="o">=</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="o">&lt;</span><span class="nx">span</span><span class="o">&gt;</span><span class="nx">Loading</span><span class="p">...</span><span class="o">&lt;</span><span class="sr">/span</span><span class="err">&gt;
+</span>
+  <span class="nx">render</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">const</span> <span class="p">{</span> <span class="nx">user</span> <span class="p">}</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">state</span>
+    <span class="k">return</span> <span class="nx">user</span> <span class="p">?</span> <span class="k">this</span><span class="p">.</span><span class="nx">displayUser</span><span class="p">()</span> <span class="p">:</span> <span class="k">this</span><span class="p">.</span><span class="nx">loading</span><span class="p">()</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">export</span> <span class="k">default</span> <span class="nx">UserDetails</span>
+</code></pre></div></div>
+
+<p>A common place for a component to make requests for data is in the componentDidMount lifecycle method. Because this request won’t be instaneous it makes sense for us to use an asyncronous pattern. One approach that uses a Promise returned from our UserAPI.getDataForUser function is</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="nx">componentDidMount</span><span class="p">()</span> <span class="p">{</span>
+        <span class="kd">const</span> <span class="p">{</span> <span class="nx">userId</span> <span class="p">}</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">props</span><span class="p">;</span>
+        <span class="nx">UserAPI</span><span class="p">.</span><span class="nx">getDataForUser</span><span class="p">(</span><span class="nx">userId</span><span class="p">)</span>
+          <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">response</span> <span class="o">=&gt;</span> <span class="p">{</span>
+            <span class="k">this</span><span class="p">.</span><span class="nx">setState</span><span class="p">({</span>
+              <span class="na">user</span><span class="p">:</span> <span class="nx">response</span><span class="p">,</span>
+            <span class="p">});</span>
+          <span class="p">})</span>
+          <span class="p">.</span><span class="k">catch</span><span class="p">(</span><span class="nx">err</span> <span class="o">=&gt;</span> <span class="p">{</span>
+            <span class="c1">// Handle a failed request</span>
+          <span class="p">})</span>
+      <span class="p">}</span>
+</code></pre></div></div>
+
+<p>This works well and allows us to update component state on a successful or unsuccessful request. There is also an alternative implementation of asynchronous behaviour that utilises async/await.</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code>    <span class="k">async</span> <span class="nx">componentDidMount</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">try</span> <span class="p">{</span>
+          <span class="kd">const</span> <span class="p">{</span> <span class="nx">userId</span> <span class="p">}</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">props</span><span class="p">;</span>
+          <span class="kd">const</span> <span class="nx">userResponse</span> <span class="o">=</span> <span class="kr">await</span> <span class="nx">UserAPI</span><span class="p">.</span><span class="nx">getDataForUser</span><span class="p">(</span><span class="nx">userId</span><span class="p">);</span>
+          <span class="k">this</span><span class="p">.</span><span class="nx">setState</span><span class="p">({</span>
+            <span class="na">user</span><span class="p">:</span> <span class="nx">userResponse</span><span class="p">,</span>
+          <span class="p">});</span>
+        <span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+          <span class="c1">// Handle a failed request</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+</code></pre></div></div>
+
+<p>Both of these approaches will allow our component to display a loading state until the request for data has concluded, and at that point change to welcome the user. Both also allow us to catch any problems and display a meaningful error state to the end user whilst passing information onto an error service.</p>
+
+<h2 id="testing"><strong>Testing</strong></h2>
+
+<p>When testing our component it’s good practice to avoid testing implemetation details. An example of some things that we’re not trying to couple our tests to might be</p>
+
+<ul>
+  <li>
+    <p>The HTTP Library we’re using</p>
+  </li>
+  <li>
+    <p>Whether our component is utilising promises or async/await to fetch data</p>
+  </li>
+  <li>
+    <p>The internal logic and function calls in UserDetails (e.g. functions like loading and displayUser)</p>
+  </li>
+</ul>
+
+<p>A good set of tests here could include expectations that</p>
+
+<p>a) Our component loads without any errors</p>
+
+<p>b) Our component makes a request to the external API with expected parameters</p>
+
+<p>c) Our component’s UI updates based the external response</p>
+
+<div class="language-javascript highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nx">React</span> <span class="k">from</span> <span class="s1">'react'</span>
+<span class="k">import</span> <span class="p">{</span> <span class="nx">mount</span> <span class="p">}</span> <span class="k">from</span> <span class="s1">'enzyme'</span>
+<span class="k">import</span> <span class="nx">UserAPI</span> <span class="k">from</span> <span class="s1">'../../api/UserAPI'</span>
+<span class="k">import</span> <span class="nx">UserDetails</span> <span class="k">from</span> <span class="s1">'./UserDetails'</span>
+
+<span class="kd">const</span> <span class="nx">mockedApiRequest</span> <span class="o">=</span> <span class="nx">jest</span><span class="p">.</span><span class="nx">fn</span><span class="p">(()</span> <span class="o">=&gt;</span>
+  <span class="nb">Promise</span><span class="p">.</span><span class="nx">resolve</span><span class="p">({</span>
+    <span class="na">name</span><span class="p">:</span> <span class="s1">'Username'</span><span class="p">,</span>
+  <span class="p">})</span>
+<span class="p">)</span>
+
+<span class="kd">const</span> <span class="nx">props</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="na">userId</span><span class="p">:</span> <span class="s1">'1'</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="nx">afterEach</span><span class="p">(()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="nx">jest</span><span class="p">.</span><span class="nx">clearAllMocks</span><span class="p">()</span>
+<span class="p">})</span>
+
+<span class="nx">it</span><span class="p">(</span><span class="s1">'fetches from external API successfully'</span><span class="p">,</span> <span class="k">async</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+  <span class="nx">UserAPI</span><span class="p">.</span><span class="nx">getDataForUser</span> <span class="o">=</span> <span class="nx">mockedApiRequest</span>
+  <span class="kd">const</span> <span class="nx">wrapper</span> <span class="o">=</span> <span class="nx">mount</span><span class="p">(</span><span class="o">&lt;</span><span class="nx">UserDetails</span> <span class="p">{...</span><span class="nx">props</span><span class="p">}</span> <span class="sr">/&gt;</span><span class="err">)
+</span>  <span class="nx">expect</span><span class="p">(</span><span class="nx">mockedApiRequest</span><span class="p">).</span><span class="nx">toBeCalledTimes</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  <span class="nx">expect</span><span class="p">(</span><span class="nx">mockedApiRequest</span><span class="p">).</span><span class="nx">toBeCalledWith</span><span class="p">(</span><span class="s1">'1'</span><span class="p">)</span>
+  <span class="kr">await</span> <span class="nx">mockedApiRequest</span>
+  <span class="nx">expect</span><span class="p">(</span>
+    <span class="nx">wrapper</span>
+      <span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="s1">'span'</span><span class="p">)</span>
+      <span class="p">.</span><span class="nx">last</span><span class="p">()</span>
+      <span class="p">.</span><span class="nx">text</span><span class="p">()</span>
+  <span class="p">).</span><span class="nx">toEqual</span><span class="p">(</span><span class="s1">'Hello Username!'</span><span class="p">)</span>
+<span class="p">})</span>
+</code></pre></div></div>
+
+<p>Using <a href="https://airbnb.io/enzyme/">enzyme</a> our component is mounted which will cause our componentDidMount to be invoked (although, as of Enzyme 3, shallow rendering components does also invoke React lifecycle methods). We have stubbed the UserAPI.getDataForUser function with a jest mock that returns a Promise and a response we have modelled on our API.</p>
+
+<p>Providing that the component mounts without internal error and we’ve stubbed the correct API call, our expectations that the API is called with particular arguments will pass. Without creating tests that declare asynchronous behaviour they would continue to run and move onto the next expectation (that ‘Hello Username!’ is visible) before the wrapper object has reacted to any subsequent change in state.</p>
+
+<p>Jest supports asyncronous testing and we can tell the test that it should wait for the resolution of a successful Promise before continuing to test any expectations. By passingthe async flag into our test we canawait the resolution of the Promise we have defined in order to check the component re-renders as expected.</p>
+
+<h2 id="5-conclusion">5. Conclusion</h2>
+
+<p>The above discussion covers two patterns that allow us to safely fetch external data to populate component state, as well as an asyncronous approach to testing that avoids implementation details and gives confidence in our component’s behaviour &amp; rendered output.</p>
+
+<p>Some of the things we’ve not touched on include <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function#Browser_compatibility">browser compatibility</a> for asynchronous approaches</p>
+
+<h2 id="further-reading">Further reading</h2>
+
+<ul>
+  <li>
+    <p><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function">async functions by MDN</a></p>
+  </li>
+  <li>
+    <p><a href="https://medium.com/@rickhanlonii/understanding-jest-mocks-f0046c68e53c">Understanding Jest Mocks</a></p>
+  </li>
+  <li>
+    <p><a href="https://jestjs.io/docs/en/tutorial-async#async-await">Jest documentation around async/await</a></p>
+  </li>
+</ul>
+
+<h2 id="background-noise">Background Noise</h2>
+
+<ul>
+  <li><strong>Remind Me Tomorrow</strong> by Sharon Van Etten</li>
+  <li><strong>Why Hasn’t Everything Already Disappeared</strong> by Deerhunter</li>
+  <li><strong>IT WON/T BE LIKE THIS ALL THE TIME</strong> by The Twilight Sad</li>
+</ul>
+
+  </div>
+  <hr>
+  
+</article>
+
+      <div class="copyright">
+        <p>&copy; 2020 <a href="http://localhost:4000/"><strong>tom winter</strong></a> ― Powered by <a href="https://jekyllrb.com/">Jekyll</a> and <a href="https://github.com/heiswayi/textlog">Textlog theme</a></p>
+      </div>
+    </div>
+    
+  </body>
+</html>
