@@ -5,13 +5,40 @@
     <description>software engineer</description>
     <link>http://localhost:4000/</link>
     <atom:link href="http://localhost:4000/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Wed, 27 May 2020 15:00:15 +0100</pubDate>
-    <lastBuildDate>Wed, 27 May 2020 15:00:15 +0100</lastBuildDate>
+    <pubDate>Wed, 27 May 2020 16:27:31 +0100</pubDate>
+    <lastBuildDate>Wed, 27 May 2020 16:27:31 +0100</lastBuildDate>
     <generator>Jekyll v3.8.3</generator>
     
       <item>
         <title>weeknotes 0</title>
-        <description>&lt;p&gt;A weeknote&lt;/p&gt;
+        <description>&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;Been trying to get more of an understanding around &lt;a href=&quot;https://deno.land/&quot; target=&quot;_blank&quot;&gt;Deno&lt;/a&gt;. Blog forthcoming - but it’s exciting. My Typescript isn’t as good as I’d like, so hoping to level up on that whilst learning about Deno. I’d like to know more about the Rust under the hood - with my only real Rust exposure so far being through &lt;a href=&quot;https://rocket.rs/&quot; target=&quot;_blank&quot;&gt;Rocket&lt;/a&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Really liked the look of &lt;a href=&quot;https://recoiljs.org/docs/introduction/getting-started&quot;&gt;Recoil&lt;/a&gt; the Facebook authored state management tool for React. The automatic subscription model &amp;amp; the ability to write functions that return derived state looks very powerful and takes a little bit of what I enjoyed from working with MobX.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Read a couple of shorter books this week that I loved. Continuing my efforts to read everything by Elizabeth Strout this year with &lt;a href=&quot;https://www.goodreads.com/book/show/27875970-my-name-is-lucy-barton&quot; target=&quot;_blank&quot;&gt;My Name is Lucy Barton&lt;/a&gt;. Also my first by Anne Tyler with her newest &lt;a href=&quot;https://www.goodreads.com/book/show/51100168-redhead-by-the-side-of-the-road&quot; target=&quot;_blank&quot;&gt;Redhead by the Side of the Road&lt;/a&gt;. Which I enjoyed enormously. Very focused, small scale, character driven plot about the minutiae of someone’s life over a few days. I also did a quick re-read of &lt;a href=&quot;https://www.goodreads.com/book/show/89717.The_Haunting_of_Hill_House&quot; target=&quot;_blank&quot;&gt;Haunting of Hill House&lt;/a&gt; for the book club at work, so we’ll be catching up about that over zoom later in the week. It’s slower than I remember but was still mesmerised by Jackson’s writing. Probably one of those books that suffers for the contemporary reader by virtue of having been copied so much.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;I started the Spotify podcast &lt;a href=&quot;https://crooked.com/podcast-series/wind-of-change/&quot; target=&quot;_blank&quot;&gt;Wind of Change&lt;/a&gt; about the rumour that the CIA wrote the song &lt;a href=&quot;https://www.youtube.com/watch?v=n4RjJKxsamQ&quot; target=&quot;_blank&quot;&gt;Wind of Change&lt;/a&gt; in the context of the Cold War. It’s fun and well produced so far. I read Patrick Radden Keefe’s book &lt;a href=&quot;https://www.goodreads.com/book/show/40163119-say-nothing&quot; target=&quot;_blank&quot;&gt;Say Nothing&lt;/a&gt; earlier this year and it was excellent - this is a big change of pace &amp;amp; tone from that so far.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;We finished &lt;a href=&quot;https://www.bbc.co.uk/iplayer/episodes/p08b9fpl/dave&quot;&gt;Dave&lt;/a&gt; on iPlayer. It started off as funny and crept up how profound/touching it is. All the characters are so well realised and no one feels like an afterthought. Great music and just really good all round.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;2020 continues to produce a lot of amazing music. This week I’ve really been enjoying the new &lt;a href=&quot;https://www.youtube.com/watch?v=ve1yeirllcY&quot; target=&quot;_blank&quot;&gt;Car Seat Headrest&lt;/a&gt;, &lt;a href=&quot;https://www.youtube.com/watch?v=Tw0zYd0eIlk&quot; target=&quot;_blank&quot;&gt;Phoebe Bridgers&lt;/a&gt; and &lt;a href=&quot;https://www.youtube.com/watch?v=SvIBsyLePtQ&quot;&gt;Sharon Van Etten covering Elvis Costello&lt;/a&gt;.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h4 id=&quot;this-weeks-reading&quot;&gt;This week’s reading&lt;/h4&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://www.ably.io/blog/what-is-a-distributed-systems-engineer&quot; target=&quot;_blank&quot;&gt;What is a Distributed Systems Engineer?&lt;/a&gt; by &lt;a href=&quot;https://ably.io&quot;&gt;ably.io&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://martinfowler.com/articles/agile-threat-modelling.html#PrioritiseAndFix&quot; target=&quot;_blank&quot;&gt;A Guide to Threat Modelling for Developers&lt;/a&gt; by &lt;a href=&quot;https://twitter.com/jgumbley&quot;&gt;Jim Gumbley&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;http://www.tugberkugurlu.com/archive/kafka-core-concepts-and-producer-semantics&quot;&gt;Kafka Core Concepts and Producer Semantics &lt;/a&gt; by &lt;a href=&quot;https://twitter.com/tourismgeek&quot;&gt;Tugberk Ugurlu&lt;/a&gt;&lt;/p&gt;
 </description>
         <pubDate>Mon, 25 May 2020 00:00:00 +0100</pubDate>
         <link>http://localhost:4000/2020/05/25/weeknote-0/</link>
