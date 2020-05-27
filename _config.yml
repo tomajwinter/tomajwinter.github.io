@@ -2,7 +2,7 @@
 title: "tom winter"
 description: "software engineer"
 baseurl: "" # required if used under gh-pages branch, else (under master branch) just leave empty/blank
-url: "tomajwinter.github.io"
+url: ""
 author: "tom winter"
 
 # Build settings
